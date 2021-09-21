@@ -1,15 +1,13 @@
 const _ = require("lodash");
 const prettyBytes = require("pretty-bytes");
 const prettyMs = require("pretty-ms");
-const { nearNum } = require("./utils");
-const { fluctuateReport } = require("./report");
+const { nearNum } = require("./utils/common");
+const { fluctuateReport } = require("./utils/report");
 
-const harJson = require("./temp/network.xhr.json");
-
-// console.log("harJson: ", harJson);
+const harJson = require("./temp/network.har.json");
 
 const basicRecords = harJson.log.entries
-  .filter(e => /_sd-\d+\.ts/.test(e.request.url))
+  .filter(e => /_sd-\d+\.ts/.test(e.request.url)) // 匹配条件
   .map(e => {
     return {
       startedDateTime: e.startedDateTime,
@@ -25,15 +23,13 @@ const basicRecords = harJson.log.entries
     };
   });
 
-// console.log("basicRecords", basicRecords);
-
-const transferSizeValues = basicRecords.map(e => e.response._transferSize);
-// console.log("transferSizeValues: ", transferSizeValues);
-// const sampleValues = transferSizeValues.map(e => prettyBytes(e))
+/**
+ * 分享响应的传输大小波动
+ */
+const transferSizeValues = basicRecords.map(e => e.response._transferSize); // 响应的传输大小
 const sampleValues = transferSizeValues.map(
   e => prettyBytes(nearNum(e, 20 * 1024)) // 按 20k 误差归并
 );
-// console.log("sampleValues: ", sampleValues);
 
 fluctuateReport({
   reportTitle: "Network Profile",

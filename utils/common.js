@@ -1,20 +1,32 @@
 const _ = require("lodash");
+const path = require('path')
 const chalk = require("chalk");
+const fs = require('fs-extra')
 const Chartscii = require("chartscii");
 const median = require("median");
 const prettyBytes = require("pretty-bytes");
 const prettyMs = require("pretty-ms");
-const bars = require("./bar");
+const bars = require("../bar");
 
-function renderChart({ title, data, width = 50, leftOffset = 0 }) {
+function renderChart({ title, data, width = 50, labelWidth = 0, leftOffset = 0 }) {
   // console.log("chart.data: ", data, leftOffset);
-  console.log(chalk.magenta(title));
+  console.log(title);
 
   let barsStr = bars(data, { bar: "=", width, sort: false });
+
+  if (labelWidth) {
+    const label = barsStr.match('^[^|]+')
+    if (label) {
+      const labelW = label[0].length
+      leftOffset = labelWidth - labelW
+      // console.log('leftOffset: ', leftOffset);
+    }
+  }
 
   if (leftOffset > 0) {
     const leftOffsetStr = new Array(leftOffset).fill(" ").join("");
     // console.log("leftOffsetStr: ", leftOffsetStr.length);
+
     barsStr = barsStr
       .replace(/^/g, leftOffsetStr)
       .replace(/\n/g, `\n${leftOffsetStr}`);
@@ -141,6 +153,20 @@ function nearNum(val, offset) {
   return Math.round(val / offset) * offset;
 }
 
+function genID(...args) {
+  return args.join()
+}
+
+function outputReport(filename, json) {
+  fs.writeJson(path.resolve(__dirname, `../temp/${filename}.json`), json).then(() => {
+    console.log('output success!')
+  })
+}
+
+const pms2 = (pu) => {
+  return prettyMs(pu / 1000, { millisecondsDecimalDigits: 2 })
+}
+
 module.exports = {
   renderChart,
   appendSumRate,
@@ -148,5 +174,8 @@ module.exports = {
   objToLabelValues,
   filterMainRate,
   filterPmRecords,
-  nearNum
+  nearNum,
+  genID,
+  outputReport,
+  pms2
 };
