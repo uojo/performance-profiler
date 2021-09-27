@@ -30,8 +30,6 @@ function renderChart({ title, data, width = 50, labelWidth = 0, leftOffset = 0 }
     barsStr = barsStr
       .replace(/^/g, leftOffsetStr)
       .replace(/\n/g, `\n${leftOffsetStr}`);
-  } else if (leftOffset < 0) {
-    // barsStr = barsStr.replace(/^/g, "").replace(/\n/g, `\n`);
   }
 
   console.log(barsStr);
@@ -64,6 +62,10 @@ function renderChart2({ title, data, width = 50, leftOffset = 0 }) {
       .replace(/^/g, leftOffsetStr)
       .replace(/\n/g, `\n${leftOffsetStr}`)
   );
+}
+
+const toPercent = (a, b) => {
+  return parseFloat((a / b).toFixed(4))
 }
 
 /**
@@ -164,6 +166,7 @@ function outputReport(filename, json) {
 }
 
 const pms2 = (pu) => {
+  if (!pu) return pu
   return prettyMs(pu / 1000, { millisecondsDecimalDigits: 2 })
 }
 
@@ -177,5 +180,6 @@ module.exports = {
   nearNum,
   genID,
   outputReport,
-  pms2
+  pms2,
+  toPercent
 };

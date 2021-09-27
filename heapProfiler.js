@@ -1,25 +1,45 @@
 const _ = require("lodash");
 const prettyBytes = require("pretty-bytes");
 const prettyMs = require("pretty-ms");
-const { filterPmRecords } = require("./utils/common");
+const { filterPmRecords, calcKeyInfo } = require("./utils/common");
 const { fluctuateReport } = require("./utils/report");
 
-// const performanceJson = require("./temp/v2.13.1-10s.json");
-const performanceJson = require("./temp/v2.17-10s.json");
-// const performanceJson = require("./temp/v2.18-220s-im.json");
-// const performanceJson = require("./temp/v2.18-35s-im.json");
 
-const heapSamples = filterPmRecords({
-  performanceJson,
-  recordName: "UpdateCounters",
-  pushBefore(e) {
-    return prettyBytes(e.args.data.jsHeapSizeUsed);
-  }
-});
+function usedVolatility(record) {
+  const samples = filterPmRecords({
+    performanceJson: record.data,
+    recordName: "UpdateCounters",
+    pushBefore(e) {
+      return prettyBytes(e.args.data.jsHeapSizeUsed);
+    }
+  });
 
-fluctuateReport({
-  reportTitle: "JS Heap Size Used",
-  sampleValues: heapSamples.values,
-  timeArea: heapSamples.timeArea,
-  labelWidth: 80,
-});
+  fluctuateReport({
+    reportTitle: `JS Heap Size Used (${record.title})`,
+    sampleValues: samples.values,
+    timeArea: samples.timeArea,
+    labelWidth: 80,
+  });
+}
+
+function usedSizeInfo(record) {
+  const samples = filterPmRecords({
+    performanceJson: record.data,
+    recordName: "UpdateCounters",
+    pushBefore(e) {
+      return e.args.data.jsHeapSizeUsed;
+    }
+  });
+
+  const kInfo = calcKeyInfo(samples.values)
+  let rlt = {}
+  Object.keys(kInfo).forEach(e => {
+    rlt[e] = [kInfo[e], prettyBytes(kInfo[e])]
+  })
+  return rlt
+}
+
+module.exports = {
+  usedVolatility,
+  usedSizeInfo
+}

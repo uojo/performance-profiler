@@ -65,16 +65,17 @@ function fluctuateReport({
   );
   const mainSamples = mainSamplesRate.map(e => [
     e[0],
+    e[1],
     (parseFloat(e[2]) * 100).toFixed(2)
   ]);
 
-  const concentrationRatio = genRate(allSamplesRate.length - mainSamples.length, allSamplesRate.length)
+  const concentrationRatio = genRate(mainSamples.length, allSamplesRate.length)
   renderChart({
     labelWidth: chatLabelWidth,
-    title: `\n组成 ${coverage * 100}% 的数值样本数 ${mainSamples.length}, 集中率: ${concentrationRatio} [${ratioLabel(concentrationRatio)}]`,
+    title: `\n覆盖 ${coverage * 100}% 的样本计数分布数据, 集中率: ${concentrationRatio} [${ratioLabel(concentrationRatio)}]`,
     data: mainSamplesRate.map(e => ({
       key: e[0],
-      val: parseFloat(e[2])
+      val: parseFloat(e[1])
     })),
   });
 

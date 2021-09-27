@@ -19,6 +19,7 @@
     "pretty-ms": "^7.0.1",
     "printf": "^0.6.1",
     "query-string": "^7.0.1",
+    "table": "^6.7.1",
     "url-parse": "^1.5.3"
   }
 }

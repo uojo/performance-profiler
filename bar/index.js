@@ -23,7 +23,7 @@ function histogram(data, opts) {
   // options
 
   const width = opts.width || 60;
-  const barc = opts.bar || "#";
+  const fillStr = opts.bar || "#";
   const map = opts.map || noop;
 
   // normalize data
@@ -33,26 +33,26 @@ function histogram(data, opts) {
   if (opts.sort) data = data.sort(descending);
 
   const maxKey = max(
-    data.map(function(d) {
+    data.map(function (d) {
       return d.key.length;
     })
   );
+
   const maxVal =
     max(
-      data.map(function(d) {
+      data.map(function (d) {
         return d.val;
       })
     ) || width;
   let str = "";
 
-  // blah blah histo
 
   for (let i = 0; i < data.length; i++) {
     const d = data[i];
     const p = d.val / maxVal;
     const shown = Math.round(width * p);
     const blank = width - shown;
-    let bar = Array(shown + 1).join(barc);
+    let bar = Array(shown + 1).join(fillStr);
     bar += Array(blank + 1).join(" ");
     str += fmt("  %*s | %s | %s\n", d.key, maxKey, bar, map(d.val));
   }
@@ -87,7 +87,7 @@ function max(data) {
  */
 
 function toArray(obj) {
-  return Object.keys(obj).map(function(key) {
+  return Object.keys(obj).map(function (key) {
     return {
       key,
       val: obj[key]

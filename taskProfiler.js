@@ -1,24 +1,45 @@
 const _ = require("lodash");
-const prettyBytes = require("pretty-bytes");
-const { filterPmRecords, nearNum, pms2 } = require("./utils/common");
+const { filterPmRecords, calcKeyInfo, nearNum, pms2 } = require("./utils/common");
 const { fluctuateReport } = require("./utils/report");
 
-// const performanceJson = require("./temp/v2.13.1-10s.json");
-// const performanceJson = require("./temp/v2.17-10s.json");
-// const performanceJson = require("./temp/v2.18-220s-im.json");
-const performanceJson = require('./temp/v2.18-20s-im-p2.json')
+function durationVolatility(record) {
+  const taskSamples = filterPmRecords({
+    performanceJson: record.data,
+    recordName: "RunTask",
+    pushBefore(e) {
+      return pms2(nearNum(e.dur, 5000)); // 手动对值进行近值归并
+    }
+  });
 
-const taskSamples = filterPmRecords({
-  performanceJson,
-  recordName: "RunTask",
-  pushBefore(e) {
-    return pms2(nearNum(e.dur, 5000)); // 手动对值进行近值归并
+  fluctuateReport({
+    reportTitle: "Task duration",
+    sampleValues: taskSamples.values.filter(e => parseFloat(e) > 0),
+    coverage: 0.99,
+    chatLabelWidth: 11
+  });
+}
+
+function durationInfo(record) {
+  const samples = filterPmRecords({
+    performanceJson: record.data,
+    recordName: "RunTask",
+    pushBefore(e) {
+      return nearNum(e.dur, 5000); // 手动对值进行近值归并
+    }
+  });
+
+  const kInfo = calcKeyInfo(samples.values.filter(e => parseFloat(e) > 0))
+  let data = {}
+  Object.keys(kInfo).forEach(e => {
+    data[e] = [kInfo[e], pms2(kInfo[e])]
+  })
+  return {
+    gtFrameCount: samples.values.filter(e => e > 16700).length, // 大于一帧的绘制时间
+    data
   }
-});
+}
 
-fluctuateReport({
-  reportTitle: "Task duration",
-  sampleValues: taskSamples.values.filter(e => parseFloat(e) > 0),
-  coverage: 0.99,
-  chatLabelWidth: 11
-});
+module.exports = {
+  durationVolatility,
+  durationInfo
+}
