@@ -33,10 +33,14 @@ function durationInfo(record) {
   Object.keys(kInfo).forEach(e => {
     data[e] = [kInfo[e], pms2(kInfo[e])]
   })
-  return {
-    gtFrameCount: samples.values.filter(e => e > 16700).length, // 大于一帧的绘制时间
+
+  const rlt = {
+    dropFrameCount: samples.values.filter(e => e > 16700), // 大于一帧的绘制时间
     data
   }
+
+  console.log('rlt: ', rlt);
+  return rlt
 }
 
 module.exports = {
