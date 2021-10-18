@@ -4,10 +4,9 @@ const cpuProfiler = require('./cpuProfiler')
 const heapProfiler = require('./heapProfiler')
 const taskProfiler = require('./taskProfiler')
 
-cpuProfiler.timeDeltaReport(getData('v2.13.1-10s'))
+// cpuProfiler.timeDeltaReport(getData('v2.13.1-10s'))
 // cpuProfiler.overview(getData('v2.13.1-10s'))
 // cpuProfiler.overview(...['v2.13.1-10s', 'v2.17-10s'].map(e => getData(e)))
-// cpuProfiler.timeDeltaInfo(getData('v2.13.1-10s'))
 
 // heapProfiler.usedVolatility(getData('v2.13.1-10s'))
 // heapProfiler.usedSizeInfo(getData('v2.13.1-10s'))

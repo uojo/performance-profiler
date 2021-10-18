@@ -14,17 +14,19 @@ const { fluctuateReport } = require("./utils/report");
  * @returns 
  */
 function getCPUNodes(cpuProfileRecords) {
-  const nodes = cpuProfileRecords.map(e => _.get(e, 'args.data.cpuProfile.nodes'))
-  // console.log('nodes: ', nodes);
+  const sourceNodes = cpuProfileRecords.map(e => _.get(e, 'args.data.cpuProfile.nodes')).filter(e => Boolean(e))
+
+  // eg. [{"callFrame":{"codeType":"other","functionName":"(root)","scriptId":0},"id":1}, {"callFrame":{"codeType":"JS","columnNumber":33,"functionName":"xxx","lineNumber":59,"scriptId":2206,"url":"xxx.js"},"id":2,"parent":1}, ... ]
+  // console.log('sourceNodes: ', sourceNodes);
 
   // 调用帧
-  const callFrames = nodes.reduce((a, b) => {
-    return (a ? a : []).concat(b ? b : [])
+  const nodes = sourceNodes.reduce((a, b) => {
+    return a.concat(b)
   })
-  // console.log('callFrames: ', callFrames);
+  // console.log('nodes: ', nodes);
 
   const nodesMap = {}
-  callFrames.forEach((e) => {
+  nodes.forEach((e) => {
     nodesMap[e.id] = e
   })
   // console.log('nodesMap: ', nodesMap);
@@ -40,7 +42,7 @@ function getCPUSamples(sourceRecords) {
   return sourceRecords.map(e => {
     if (_.get(e, 'args.data.cpuProfile.samples')) {
       return {
-        samples: e.args.data.cpuProfile.samples, // 消耗CPU的任务ID队列
+        ids: e.args.data.cpuProfile.samples, // 消耗CPU的任务ID队列
         timeDeltas: e.args.data.timeDeltas // 消耗CPU时间的队列
       }
     }
@@ -113,11 +115,11 @@ function cpuTimeDeltas(items) {
   const urlFuncMap = {}
   samples.forEach(e => {
     // 依据 samples 中的任务id，匹配对应的 nodeID
-    e.samples.forEach((nodeID, i) => {
-      // id 对应的时间片值，timeDeltas 与 samples 对应
-      const timeDelta = e.timeDeltas[i]
+    e.ids.forEach((nodeID, i) => {
+      const timeDelta = e.timeDeltas[i] // id 对应的时间值，timeDeltas 与 ids 对应
       const node = nodesMap[nodeID]
-      const type = node.callFrame.codeType // 调用帧的任务类型
+      node === undefined && console.log('>>>');
+      const type = node.callFrame.codeType // 任务类型：JS、other
       const url = parseModuleUrl(node.callFrame.url)
       const funcName = (node.callFrame.functionName || '(anonymous)').replace(/^\s*/g, '')
       const urlFuncID = genID(url, funcName)
@@ -129,8 +131,9 @@ function cpuTimeDeltas(items) {
       codeTypeMap[type].totalTime += timeDelta // 累计消耗CPU的时间
       codeTypeMap[type].totalTimeFormat = pms2(codeTypeMap[type].totalTime)
 
-      // 匹配相同任务路径的消耗信息
+      // 匹配相同JS文件的消耗信息
       if (url) {
+
         if (!codeTypeMap[type].urls[url]) {
           codeTypeMap[type].urls[url] = { totalTime: 0, timeDeltas: [] }
         }
@@ -148,7 +151,7 @@ function cpuTimeDeltas(items) {
       codeTypeMap[type].funcNames[funcName].totalTime += timeDelta
 
 
-      // 因为不同的任务路径中存在相同的函数名，故以任务路径+函数名称作为ID
+      // 因为不同的JS文件中存在相同的函数名，故以JS文件+函数名称作为ID
       if (!urlFuncMap[urlFuncID]) {
         urlFuncMap[urlFuncID] = { name: funcName, totalTime: 0, count: 0, timeDeltas: [] }
       }
@@ -157,7 +160,7 @@ function cpuTimeDeltas(items) {
       urlFuncMap[urlFuncID].timeDeltas.push(timeDelta)
 
 
-      // 统计每个任务路径的消耗信息
+      // 统计每个JS文件的消耗信息
       if (url) {
         if (!urlMap[url]) {
           urlMap[url] = { totalTime: 0, count: 0, timeDeltas: [], funcNames: new Set() }
@@ -198,7 +201,7 @@ function cpuTimeDeltas(items) {
 function outputFluctuateStats(samples, title) {
   const timeDeltaItems = Object.keys(samples).reduce((a, b) => {
     return (samples[a] ? samples[a].timeDeltas : a).concat(samples[b].timeDeltas)
-  }).filter(e => e > 100)
+  }).filter(e => e > 100) // 设置最小值，缩小有效数值范围
 
   fluctuateReport({
     reportTitle: `波动性分析 (${title})`,
@@ -229,15 +232,15 @@ function outputUrlStats(samples) {
  * @param {} record
  * @param {string} parsePath
  */
-function timeDeltaReport(record, { showFluctuate = 10, showUrls = 10 } = {}) {
+function timeDeltaReport(record, { showFluctuate = 10, showUrls = 0 } = {}) {
   const timeDeltaInfo = cpuTimeDeltas(record.data)
   // console.log(Object.keys(timeDeltaInfo.codeTypeMap)); // [ 'JS', 'other' ]
   // console.log(Object.keys(timeDeltaInfo.codeTypeMap.JS)); // [ 'totalTime', 'urls', 'funcNames', 'totalTimeFormat' ]
 
   // 所有 js 文件暂用 CPU 的时间段样本
-  const jsUrlsSamples = _.get(timeDeltaInfo.codeTypeMap, 'JS.urls') // 仅统计具有 url 属性的记录，所以有局限
+  const jsUrlsSamples = _.get(timeDeltaInfo.codeTypeMap, 'JS.urls') // 仅统计具有 url 属性的记录，所以仅覆盖来源于 JS 文件的记录
   showFluctuate && outputFluctuateStats(jsUrlsSamples, record.title)
-  showUrls && outputUrlStats(jsUrlsSamples)
+  // showUrls && outputUrlStats(jsUrlsSamples) // 存在偏差，具有 url 的记录可能是父节点，然而子节点ID存在于样本队列中！
 }
 
 /**
